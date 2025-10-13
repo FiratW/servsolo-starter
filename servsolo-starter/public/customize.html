@@ -1,0 +1,88 @@
+<!doctype html><meta charset="utf-8">
+<title>Customize</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<h2>Pick options</h2>
+<div id="groups"></div>
+
+<div style="margin-top:10px">
+  Qty:
+  <button type="button" onclick="changeQty(-1)">−</button>
+  <span id="qty">1</span>
+  <button type="button" onclick="changeQty(1)">+</button>
+</div>
+
+<button id="place" style="margin-top:10px">Preview order payload</button>
+<pre id="out" style="background:#f6f6f6;padding:8px;border-radius:8px;white-space:pre-wrap"></pre>
+
+<script>
+const $ = s => document.querySelector(s);
+let MENU = null, qty = 1, selections = {}; // { group_id: [modifier_id,...] }
+
+async function loadMenu(){
+  const r = await fetch('/api/menu'); MENU = await r.json();
+  renderGroups();
+}
+
+function renderGroups(){
+  const wrap = $('#groups'); wrap.innerHTML = ''; selections = {};
+  (MENU.groups||[]).forEach(g=>{
+    const box = document.createElement('div'); box.style.margin = '8px 0';
+    const h = document.createElement('div');
+    h.innerHTML = `<strong>${g.name}</strong> ${g.required?'(required)':''} ${g.max_choices>1?`(up to ${g.max_choices})`:''}`;
+    box.appendChild(h);
+
+    const row = document.createElement('div');
+    row.style.display='flex'; row.style.flexWrap='wrap'; row.style.gap='8px';
+
+    g.modifiers.forEach(m=>{
+      const btn = document.createElement('button');
+      const price = m.price_delta_cents ? ` ${m.price_delta_cents>0?'+':''}$${(m.price_delta_cents/100).toFixed(2)}` : '';
+      btn.textContent = m.name + price;
+      btn.style.padding = '6px 10px';
+
+      btn.onclick = ()=>{
+        const set = new Set(selections[g.id] || []);
+        if (g.max_choices === 1) {
+          if (set.has(m.id)) set.clear(); else { set.clear(); set.add(m.id); }
+          Array.from(row.children).forEach(b=>b.classList.remove('active'));
+          if (set.size) btn.classList.add('active');
+        } else {
+          if (set.has(m.id)) { set.delete(m.id); btn.classList.remove('active'); }
+          else {
+            if (set.size >= g.max_choices) return;
+            set.add(m.id); btn.classList.add('active');
+          }
+        }
+        selections[g.id] = Array.from(set);
+      };
+
+      row.appendChild(btn);
+    });
+
+    box.appendChild(row);
+    wrap.appendChild(box);
+  });
+}
+
+function changeQty(d){
+  qty = Math.max(1, qty + d);
+  document.getElementById('qty').textContent = qty;
+}
+
+$('#place').onclick = ()=>{
+  const missing = (MENU.groups||[]).filter(g=>g.required && !(selections[g.id]?.length));
+  if (missing.length) { alert('Choose: ' + missing.map(m=>m.name).join(', ')); return; }
+  const payload = {
+    items: [{
+      product_id: 1, // demo
+      qty,
+      modifiers: Object.entries(selections).map(([gid,mids])=>({
+        group_id:Number(gid), modifier_ids:mids.map(Number)
+      }))
+    }]
+  };
+  $('#out').textContent = JSON.stringify(payload, null, 2);
+};
+
+loadMenu();
+</script>

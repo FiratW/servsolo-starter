@@ -1,0 +1,13 @@
+{
+  "name": "servsolo-starter",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.0",
+    "express": "^4.19.2"
+  }
+}

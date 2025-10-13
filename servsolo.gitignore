@@ -1,0 +1,5 @@
+node_modules/
+servsolo.db*
+servsolo.db-wal
+servsolo.db-shm
+.DS_Store
