@@ -3,3 +3,6 @@ servsolo.db*
 servsolo.db-wal
 servsolo.db-shm
 .DS_Store
+ChromeAdmin/
+ChromeKiosk/
+
